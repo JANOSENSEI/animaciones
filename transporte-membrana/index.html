@@ -56,6 +56,9 @@ canvas{display:block;width:100%}
 .sw{display:inline-block;width:11px;height:11px;margin-right:5px;vertical-align:-1px;border-radius:50%}
 .sw.sq{border-radius:3px}
 .ctrl{display:flex;gap:6px}
+.toggle{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:700;cursor:pointer;flex:1 1 100%}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+.toggle[hidden]{display:none}
 .ctrl button{font:inherit;font-size:.9rem;font-weight:700;padding:7px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
 .chip{margin:0;padding:8px 12px;border-radius:10px;font-weight:700;font-size:.95rem;border:1.5px solid var(--accent);color:var(--accent);background:var(--panel)}
 .card{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px}
@@ -91,6 +94,7 @@ th{color:var(--muted);font-weight:700}
         <button id="btn-play" type="button">Pausar</button>
         <button id="btn-reset" type="button">Reiniciar</button>
       </div>
+      <label class="toggle" id="net-wrap" for="net"><input type="checkbox" id="net" checked> Simplificar: mostrar solo el flujo neto (sin moléculas que vuelvan mientras haya gradiente)</label>
     </div>
   </div>
 
@@ -125,7 +129,7 @@ th{color:var(--muted);font-weight:700}
 "use strict";
 var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 var W=340,H=400,dpr=1,L=46,R=330,mTop=166,mBot=234,cx=188;
-var tNow=0,mode="simple",running=true,P=[],T=null,Pm=null,tick=0,flux={inn:0,out:0},KB=0.03;
+var netOnly=true,tNow=0,mode="simple",running=true,P=[],T=null,Pm=null,tick=0,flux={inn:0,out:0},KB=0.03;
 var SPEED=70;
 
 var KIND={
@@ -212,6 +216,12 @@ function reset(){
     Pm={c:0,phase:"bindCo",t:0,ions:[],hasP:false,stalled:false,why:"",fx:[],cycles:0,need:3};}
   renderInfo(); updateReadout(); draw();
 }
+function downhillOK(kind,side){
+  if(!netOnly)return true;
+  var c=counts(kind);
+  if(nearEq(c))return true;
+  return side<0?c[0]>c[1]:c[1]>c[0];
+}
 function makeCarrier(x,side){return {x:x,c:side<0?0:1,state:"open",side:side,cargo:null,pending:null,idle:0,t:0};}
 function countFlux(p){if(p.side>0)flux.inn++;else flux.out++;}
 function launch(p){
@@ -222,11 +232,11 @@ function launch(p){
 /* ---------- física ---------- */
 function tryCross(p){
   if(mode==="simple"){
-    if(Math.random()<0.3){p.st="cross";p.from=p.side;p.t=0;p.D=0.7;p.tx=null;return true;}
+    if(downhillOK(p.kind,p.side)&&Math.random()<0.3){p.st="cross";p.from=p.side;p.t=0;p.D=0.7;p.tx=null;return true;}
     return false;
   }
   if(mode==="canal"){
-    if(Math.abs(p.x-cx)<24){p.st="cross";p.from=p.side;p.t=0;p.D=0.32;p.tx=cx;return true;}
+    if(Math.abs(p.x-cx)<24&&downhillOK(p.kind,p.side)){p.st="cross";p.from=p.side;p.t=0;p.D=0.32;p.tx=cx;return true;}
     return false;
   }
   return false;
@@ -286,7 +296,7 @@ function stepCarrier(dt){
   T.forEach(function(k){
     if(k.state==="open"&&!k.pending){
       var f=freeGlu(k.side,k.x);
-      if(f.best&&Math.random()<KB*f.n*dt){f.best.st="cseek";f.best.car=k;k.pending=f.best;}
+      if(f.best&&downhillOK("Glu",k.side)&&Math.random()<KB*f.n*dt){f.best.st="cseek";f.best.car=k;k.pending=f.best;}
       else{k.idle+=dt;if(k.idle>0.6){k.state="switch";k.t=0;}}
     }
     if(k.state==="switch"){
@@ -510,6 +520,7 @@ function updateReadout(){
   if(elChip.textContent!==chip)elChip.textContent=chip;
 }
 function renderInfo(){
+  document.getElementById("net-wrap").hidden=!(mode==="simple"||mode==="canal"||mode==="carrier");
   document.getElementById("info-title").textContent=INFO[mode].title;
   var dl=document.getElementById("info");dl.innerHTML="";
   INFO[mode].rows.forEach(function(r){
@@ -529,6 +540,7 @@ var btnPlay=document.getElementById("btn-play");
 function setRunning(v){running=v;btnPlay.textContent=v?"Pausar":"Reanudar";}
 btnPlay.addEventListener("click",function(){setRunning(!running);});
 document.getElementById("btn-reset").addEventListener("click",function(){reset();});
+document.getElementById("net").addEventListener("change",function(e){netOnly=e.target.checked;reset();});
 Array.prototype.forEach.call(document.querySelectorAll(".tabs button"),function(b){
   b.addEventListener("click",function(){
     mode=b.getAttribute("data-mode");
