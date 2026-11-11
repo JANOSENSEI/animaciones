@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Endocitosis de LDL mediada por receptor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Plan: una columna; selector de etapas -> escena (canvas) -> controles -> explicación de la etapa -> leyenda -> ideas clave. */
+:root{
+  --bg:#f3f6f7; --panel:#ffffff; --ink:#14262e; --muted:#566b74; --line:#d3dde1;
+  --accent:#0d6e7a; --accent-ink:#ffffff;
+  --out:#e4f1f4; --in:#f6efe2; --head:#e0a030; --band:#efe6cf;
+  --rec:#2f66c9; --recbad:#8f8f8f; --clath:#6d5aa8; --ap2:#d9542b; --dyn:#c2185b;
+  --shell:#f2c94c; --core:#e08a1e; --apob:#b23a48;
+  --endo:#d9ece6; --acid:#f6d8c6; --lyso:#efc2d3; --pump:#8a6d3b; --hplus:#d9542b;
+  --chol:#e8b100; --aa:#3c8c3f;
+  --font-display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+  --font-body:"Atkinson Hyperlegible",Verdana,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1a1f; --panel:#16252b; --ink:#e6eef0; --muted:#9db0b7; --line:#2b3f47;
+    --accent:#58c4cf; --accent-ink:#06262b;
+    --out:#132a31; --in:#2a2418; --head:#e2ab45; --band:#3a3323;
+    --rec:#7fa8ff; --recbad:#7a7a7a; --clath:#a996e6; --ap2:#ff8a61; --dyn:#f06292;
+    --shell:#e9c25a; --core:#d9862a; --apob:#ff6b7d;
+    --endo:#1e3b36; --acid:#4a3326; --lyso:#4a2838; --pump:#c9a46a; --hplus:#ff8a61;
+    --chol:#f0c24a; --aa:#7cc97f;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1a1f; --panel:#16252b; --ink:#e6eef0; --muted:#9db0b7; --line:#2b3f47;
+  --accent:#58c4cf; --accent-ink:#06262b;
+  --out:#132a31; --in:#2a2418; --head:#e2ab45; --band:#3a3323;
+  --rec:#7fa8ff; --recbad:#7a7a7a; --clath:#a996e6; --ap2:#ff8a61; --dyn:#f06292;
+  --shell:#e9c25a; --core:#d9862a; --apob:#ff6b7d;
+  --endo:#1e3b36; --acid:#4a3326; --lyso:#4a2838; --pump:#c9a46a; --hplus:#ff8a61;
+  --chol:#f0c24a; --aa:#7cc97f;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45}
+main{max-width:760px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:14px}
+h1{font-family:var(--font-display);font-weight:700;font-size:1.7rem;line-height:1.1;margin:0;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:62ch}
+.chips{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:5px}
+.chips button{font:inherit;font-weight:700;font-size:.9rem;padding:7px 0;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.chips button.done{border-color:var(--accent);color:var(--accent)}
+.chips button[aria-current="step"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.stage{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+canvas{display:block;width:100%}
+.bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:10px 12px;border-top:1.5px solid var(--line)}
+.ctrl{display:flex;flex-wrap:wrap;gap:6px}
+.ctrl button{font:inherit;font-size:.9rem;font-weight:700;padding:7px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.toggle{display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:700;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+.card{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px}
+.card h2{font-family:var(--font-display);font-size:1.2rem;margin:0 0 8px;text-wrap:balance}
+.card p{margin:0;max-width:65ch}
+#info{border-left:5px solid var(--accent)}
+#info.fh{border-left-color:var(--recbad)}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 14px;margin:0;padding:0;list-style:none;font-size:.92rem}
+.legend li{display:flex;align-items:center;gap:8px}
+.legend canvas{width:26px;height:26px;flex:none}
+.keys{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:65ch}
+</style>
+</head>
+<body>
+<main>
+  <h1>Endocitosis de LDL mediada por receptor</h1>
+  <p class="lede">Once etapas, desde que la LDL se une a su receptor hasta que el colesterol regula la célula. Puedes saltar a cualquier etapa con los números.</p>
+
+  <nav class="chips" id="chips" aria-label="Etapas"></nav>
+
+  <div class="stage">
+    <canvas id="cv" role="img" aria-label="Animación de la endocitosis de LDL mediada por receptor"></canvas>
+    <div class="bar">
+      <div class="ctrl">
+        <button id="btn-prev" type="button">◀ Anterior</button>
+        <button id="btn-play" type="button">Pausar</button>
+        <button id="btn-next" type="button">Siguiente ▶</button>
+        <button id="btn-reset" type="button">Reiniciar</button>
+      </div>
+      <label class="toggle" for="fh"><input type="checkbox" id="fh"> Receptor que no une LDL (hipercolesterolemia familiar)</label>
+    </div>
+  </div>
+
+  <section class="card" id="info" aria-live="polite">
+    <h2 id="st-title"></h2>
+    <p id="st-text"></p>
+  </section>
+
+  <section class="card">
+    <h2>Leyenda</h2>
+    <ul class="legend" id="legend"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Ideas clave</h2>
+    <ul class="keys">
+      <li>Solo entra lo que el receptor reconoce. Así la célula capta un ligando escaso en la sangre sin tragar un gran volumen de plasma.</li>
+      <li>El pH ácido del endosoma separa los destinos: el receptor vuelve a la membrana y la LDL acaba degradada en el lisosoma.</li>
+      <li>La luz de la vesícula y del endosoma es topológicamente equivalente al exterior de la célula.</li>
+      <li>Las estatinas inhiben la HMG-CoA reductasa. Con menos colesterol dentro, la célula fabrica más receptores de LDL y baja la LDL de la sangre.</li>
+      <li>Brown y Goldstein descubrieron esta vía estudiando la hipercolesterolemia familiar y recibieron el Nobel de Medicina en 1985.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var LW=800,LH=540,Y0=170,CX=400,R=70,RE=72,EX=190,EY=425,RR=40,LR=11,STEM=19,MX=645;
+var S=[-75,-25,25,75],RX0=[150,265,545,660],LDL0=[[120,62],[285,98],[520,64],[690,94]];
+var OFF=[0.9,0.3,-0.3,-0.9],ACID=[0.45,0.15,-0.15,-0.45],RVA=[2.0,0.7,-0.7,-2.0],RECX=[600,630,660,690];
+var CL=[[-24,-10],[4,-28],[-6,18],[22,4]];
+var EXTRA=[[60,112],[205,40],[355,74],[455,112],[610,40],[760,116]];
+var PUMPS=[2.55,3.45];
+var F='"Atkinson Hyperlegible",Verdana,sans-serif';
+
+var ST=[
+ {d:3.5,t:"LDL en el plasma",
+  x:"Las LDL viajan por la sangre. Cada partícula mide unos 22 nm y lleva un núcleo de unas 1.500 moléculas de colesterol esterificado, rodeado por una monocapa de fosfolípidos y colesterol libre, con una sola apolipoproteína B-100 (en rojo).",
+  f:"Las LDL viajan por la sangre. Cada partícula mide unos 22 nm y lleva un núcleo de colesterol esterificado con una sola apolipoproteína B-100 (en rojo). En este modo, los receptores de la membrana tienen una mutación en su zona de unión."},
+ {d:3.5,t:"Unión LDL–receptor",
+  x:"La apoB-100 de cada LDL encaja en el dominio de unión del receptor de LDL, una glicoproteína transmembrana de un solo paso. Es una unión muy específica y de alta afinidad.",
+  f:"El receptor mutado llega a la membrana, pero no reconoce la apoB-100. Las LDL se acercan y no quedan retenidas: se quedan en la sangre."},
+ {d:4,t:"Agrupación en la fosita recubierta",
+  x:"Los receptores se concentran en una fosita recubierta. Su cola citosólica (con la secuencia NPXY) se une a proteínas adaptadoras como AP2 (punto naranja), que reclutan la clatrina. Los trisqueliones de clatrina se ensamblan en la cara citosólica.",
+  f:"Los receptores mutados también se agrupan en la fosita, porque su cola citosólica es normal. Pero llegan vacíos."},
+ {d:4,t:"Invaginación",
+  x:"La clatrina se organiza en una red de pentágonos y hexágonos que curva la membrana hacia el citosol. Fíjate en que las LDL quedan dentro de la invaginación: topológicamente siguen en el espacio extracelular.",
+  f:"La fosita se invagina igual que en una célula sana, pero sin LDL dentro."},
+ {d:3.5,t:"Estrangulamiento por la dinamina",
+  x:"La dinamina, una GTPasa, forma un anillo alrededor del cuello de la invaginación. Al hidrolizar GTP lo estrangula y libera una vesícula recubierta de clatrina.",
+  f:"La dinamina estrangula el cuello y se forma la vesícula, que en este caso no transporta LDL."},
+ {d:3,t:"Pérdida de la cubierta",
+  x:"La vesícula pierde la cubierta: Hsc70 y auxilina desensamblan la clatrina, que vuelve a la membrana para formar nuevas fositas.",
+  f:"La vesícula pierde la cubierta de clatrina igual que en una célula sana."},
+ {d:4,t:"Fusión con el endosoma temprano",
+  x:"La vesícula desnuda se fusiona con el endosoma temprano y le entrega su contenido: las LDL, todavía unidas a sus receptores.",
+  f:"La vesícula se fusiona con el endosoma temprano, pero no le entrega ninguna LDL."},
+ {d:4,t:"Desacoplamiento en medio ácido",
+  x:"Una bomba de protones (H⁺-ATPasa de tipo V) acidifica el endosoma hasta pH ≈ 6. A ese pH el receptor cambia de conformación y suelta la LDL. Por eso a este compartimento se le llamó CURL, compartimento de desacoplamiento del receptor y el ligando.",
+  f:"El endosoma se acidifica igual, pero no hay LDL que liberar."},
+ {d:4.5,t:"Reciclaje del receptor",
+  x:"Los receptores libres se concentran en una región tubular del endosoma, que se desprende como vesícula de reciclaje y vuelve a la membrana plasmática. Cada receptor hace un viaje de ida y vuelta cada 10 minutos aproximadamente, y cientos a lo largo de su vida (unas 20 horas).",
+  f:"Los receptores vuelven a la membrana plasmática en una vesícula de reciclaje, listos para otro intento que tampoco funcionará."},
+ {d:5,t:"Degradación en el lisosoma",
+  x:"El endosoma madura hasta lisosoma (pH ≈ 5). La lipasa ácida lisosómica hidroliza los ésteres de colesterol y libera colesterol libre, que sale al citosol con ayuda de NPC2 y NPC1. Las proteasas degradan la apoB-100 hasta aminoácidos.",
+  f:"El lisosoma no recibe LDL, así que por esta vía no entra colesterol en la célula."},
+ {d:6,t:"Regulación por el colesterol",
+  x:"El colesterol libre regula la célula: inhibe la HMG-CoA reductasa (menos síntesis propia), frena la vía SREBP (se fabrican menos receptores de LDL) y activa la ACAT, que lo reesterifica para almacenarlo en gotas lipídicas.",
+  f:"La célula interpreta que le falta colesterol: activa la HMG-CoA reductasa y fabrica más receptores, que tampoco funcionan. La LDL se acumula en la sangre y favorece una aterosclerosis precoz."}
+];
+var START=[],TOTAL=0;
+ST.forEach(function(s){START.push(TOTAL);TOTAL+=s.d;});
+
+var T=0,running=true,fh=false,scale=1,dpr=1,fs=13,C={};
+
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,t){return a+(b-a)*t;}
+function ease(t){t=clamp(t,0,1);return t*t*(3-2*t);}
+function P(i){return clamp((T-START[i])/ST[i].d,0,1);}
+function stageIdx(){for(var i=ST.length-1;i>0;i--)if(T>=START[i]-1e-6)return i;return 0;}
+
+/* ---------- colores ---------- */
+var TOK=["bg","panel","ink","muted","line","accent","out","in","head","band","rec","recbad","clath","ap2","dyn","shell","core","apob","endo","acid","lyso","pump","hplus","chol","aa"];
+function readColors(){
+  var cs=getComputedStyle(document.documentElement);
+  TOK.forEach(function(k){C[k]=cs.getPropertyValue("--"+k).trim();});
+}
+function hex(c){c=c.replace("#","");if(c.length===3)c=c[0]+c[0]+c[1]+c[1]+c[2]+c[2];return [parseInt(c.slice(0,2),16),parseInt(c.slice(2,4),16),parseInt(c.slice(4,6),16)];}
+function mixColor(a,b,t){var x=hex(a),y=hex(b);return "rgb("+Math.round(lerp(x[0],y[0],t))+","+Math.round(lerp(x[1],y[1],t))+","+Math.round(lerp(x[2],y[2],t))+")";}
+function mixColorHex(a,b,t){var x=hex(a),y=hex(b),o="#";for(var i=0;i<3;i++){var v=Math.round(lerp(x[i],y[i],t)).toString(16);o+=v.length<2?"0"+v:v;}return o;}
+
+/* ---------- geometría ---------- */
+function memPos(s,h){
+  var a=Math.sqrt(Math.max(0,R*R-h*h)),al=Math.atan2(h,a),half=R*(Math.PI/2+al);
+  if(Math.abs(s)<=half){
+    var th=Math.PI/2-s/R,c=Math.cos(th),sn=Math.sin(th);
+    return {x:CX+R*c,y:Y0+h+R*sn,nx:-c,ny:-sn};
+  }
+  var sg=s<0?-1:1;
+  return {x:CX+sg*(a+Math.abs(s)-half),y:Y0,nx:0,ny:-1};
+}
+function circPt(x,y,r,ang){var c=Math.cos(ang),s=Math.sin(ang);return {x:x+r*c,y:y+r*s,nx:-c,ny:-s};}
+function mixPt(a,b,t){
+  var nx=lerp(a.nx,b.nx,t),ny=lerp(a.ny,b.ny,t),l=Math.sqrt(nx*nx+ny*ny)||1;
+  return {x:lerp(a.x,b.x,t),y:lerp(a.y,b.y,t),nx:nx/l,ny:ny/l};
+}
+
+/* ---------- estado de la escena en el instante T ---------- */
+function scene(){
+  var p1=P(1),p2=P(2),p3=P(3),p4=P(4),p5=P(5),p6=P(6),p7=P(7),p8=P(8),p9=P(9),p10=P(10);
+  var sc={p4:p4,p5:p5,p6:p6,p7:p7,p8:p8,p9:p9,p10:p10};
+  var cut=p4>=0.8,h=-R;
+  if(!cut){if(p4>0)h=lerp(0.5*R,R,ease(p4/0.8));else if(p3>0)h=lerp(-R,0.5*R,ease(p3));}
+  sc.h=h;sc.cut=cut;
+
+  var V5x=CX-60,V5y=Y0+R+70;
+  var dx=V5x-EX,dy=V5y-EY,dl=Math.sqrt(dx*dx+dy*dy);dx/=dl;dy/=dl;
+  var dAng=Math.atan2(dy,dx);
+
+  var ves=null;
+  if(cut&&p6<1){
+    var vx,vy,vr=R,mg=0;
+    if(p5<=0){vx=CX;vy=Y0+R+18*ease((p4-0.8)/0.2);}
+    else if(p6<=0){var q5=ease(p5);vx=lerp(CX,V5x,q5);vy=lerp(Y0+R+18,V5y,q5);}
+    else{
+      var c1x=EX+dx*(RE+R*0.95),c1y=EY+dy*(RE+R*0.95);
+      if(p6<0.55){var qa=ease(p6/0.55);vx=lerp(V5x,c1x,qa);vy=lerp(V5y,c1y,qa);}
+      else{mg=ease((p6-0.55)/0.45);vx=lerp(c1x,EX+dx*(RE-R*0.2),mg);vy=lerp(c1y,EY+dy*(RE-R*0.2),mg);vr=lerp(R,0.01,mg);}
+    }
+    ves={x:vx,y:vy,r:vr,merge:mg};
+  }
+  sc.ves=ves;
+
+  var rv=null;
+  if(p8>0&&p8<1){
+    var rx,ry,rr=RR;
+    if(p8<0.35){rx=EX+RE-RR+2*RR*ease(p8/0.35);ry=EY;}
+    else if(p8<0.8){var qt=ease((p8-0.35)/0.45);rx=lerp(EX+RE+RR,MX,qt);ry=lerp(EY,Y0+RR+4,qt);}
+    else{var qf=ease((p8-0.8)/0.2);rx=MX;ry=lerp(Y0+RR+4,Y0,qf);rr=lerp(RR,0.01,qf);}
+    rv={x:rx,y:ry,r:rr};
+  }
+  sc.rv=rv;
+
+  /* receptores */
+  sc.rec=[];
+  for(var i=0;i<4;i++){
+    var m;
+    if(!cut){m=memPos(lerp(RX0[i]-CX,S[i],ease(p2)),h);}
+    else if(ves){
+      var th=Math.PI/2-S[i]/R,pv=circPt(ves.x,ves.y,R,th);
+      m=ves.merge>0?mixPt(pv,circPt(EX,EY,RE,dAng+OFF[i]),ves.merge):pv;
+    }
+    else if(p8<=0){m=circPt(EX,EY,RE,lerp(dAng+OFF[i],ACID[i],ease(p7)));}
+    else if(p8<1){
+      var rp=circPt(rv.x,rv.y,RR,RVA[i]);
+      if(p8<0.35)m=mixPt(circPt(EX,EY,RE,ACID[i]),rp,ease(p8/0.35));
+      else if(p8<0.8)m=rp;
+      else m=mixPt(rp,{x:RECX[i],y:Y0,nx:0,ny:-1},ease((p8-0.8)/0.2));
+    }
+    else{m={x:RECX[i],y:Y0,nx:0,ny:-1};}
+    sc.rec.push(m);
+  }
+
+  /* LDL */
+  sc.ldl=[];
+  for(i=0;i<4;i++){
+    var rc=sc.rec[i],bx=rc.x+rc.nx*(STEM+LR+1),by=rc.y+rc.ny*(STEM+LR+1);
+    var fx=LDL0[i][0]+Math.sin(T*1.3+i*1.7)*5,fy=LDL0[i][1]+Math.cos(T*1.1+i*2.3)*4;
+    var L={x:fx,y:fy,r:LR,ang:Math.PI/2,a:1};
+    if(fh){
+      var f=Math.sin(Math.PI*p1)*0.8;
+      L.x=lerp(fx,bx,f);L.y=lerp(fy,by,f);
+    }else{
+      L.ang=Math.atan2(-rc.ny,-rc.nx);
+      if(p1<1){var q=ease(p1);L.x=lerp(fx,bx,q);L.y=lerp(fy,by,q);}
+      else if(p7<=0){L.x=bx;L.y=by;}
+      else if(p9<=0){var q7=ease(p7);L.x=lerp(bx,EX+CL[i][0],q7);L.y=lerp(by,EY+CL[i][1],q7);if(q7>0.5)L.ang=Math.PI/2+i;}
+      else{L.x=EX+CL[i][0];L.y=EY+CL[i][1];L.ang=Math.PI/2+i;L.r=LR*(1-ease(p9/0.55));}
+    }
+    sc.ldl.push(L);
+  }
+  sc.extra=[];
+  if(fh){
+    var g=clamp((T-START[5])/(TOTAL-START[5]),0,1);
+    for(var j=0;j<EXTRA.length;j++){
+      var al2=clamp(g*EXTRA.length-j,0,1);
+      if(al2>0)sc.extra.push({x:EXTRA[j][0]+Math.sin(T*1.2+j)*4,y:EXTRA[j][1]+Math.cos(T+j*1.9)*3,a:al2});
+    }
+  }
+
+  /* clatrina */
+  sc.cla=[];
+  sc.coat=(p2>0&&p5<1)?Math.min(1,p2*2)*(1-p5):0;
+  if(p2>0&&p5<1){
+    var k=p4>0?lerp(0.85,1,ease(Math.min(1,p4/0.8))):p3>0?lerp(0.45,0.85,ease(p3)):0.45;
+    for(j=-11;j<=11;j++){
+      var sj=j*18*k,qa2=clamp((p2-Math.abs(j)*0.03)/0.5,0,1);
+      if(qa2<=0)continue;
+      var tx,ty,rot;
+      if(!cut){var mm=memPos(sj,h);tx=mm.x-mm.nx*14;ty=mm.y-mm.ny*14;rot=Math.atan2(mm.ny,mm.nx);}
+      else{var th2=Math.PI/2-sj/R,rad=R+14+50*ease(p5);tx=ves.x+rad*Math.cos(th2);ty=ves.y+rad*Math.sin(th2);rot=th2;}
+      var jx=((j*37)%23)-11,e=ease(qa2);
+      sc.cla.push({x:lerp(tx+jx,tx,e),y:lerp(ty+70,ty,e),rot:rot+j*0.4,a:qa2*(1-p5)});
+    }
+  }
+
+  /* colesterol y aminoácidos */
+  sc.chol=[];sc.aa=[];
+  if(!fh&&p9>0.15){
+    for(i=0;i<4;i++)for(var n=0;n<4;n++){
+      var idx=i*4+n,u=ease(clamp((p9-0.15-n*0.06-i*0.03)/0.55,0,1));
+      var ctx2=330+(idx%4)*18+(Math.floor(idx/4)%2)*9,cty=395+Math.floor(idx/4)*18;
+      sc.chol.push({x:lerp(EX+CL[i][0],ctx2,u),y:lerp(EY+CL[i][1],cty,u),rot:idx*0.7+(p10>0?Math.sin(T*2+idx)*0.25:0),a:clamp((p9-0.15)*8,0,1)});
+    }
+  }
+  if(!fh&&p9>0.25){
+    var spr=1+0.9*ease((p9-0.25)/0.5),AAO=[[-7,4],[6,6],[0,-7]];
+    for(i=0;i<4;i++)for(n=0;n<3;n++)sc.aa.push({x:EX+CL[i][0]+AAO[n][0]*spr,y:EY+CL[i][1]+AAO[n][1]*spr,a:clamp((p9-0.25)*6,0,1)});
+  }
+
+  sc.endoCol=mixColorHex(mixColorHex(C.endo,C.acid,ease(p7)),C.lyso,ease(p9));
+  sc.ph=p9>0?lerp(6.0,5.0,ease(p9)):lerp(7.4,6.0,ease(p7));
+  return sc;
+}
+
+/* ---------- dibujo ---------- */
+function circlePath(x,y,r){ctx.beginPath();ctx.arc(x,y,Math.max(0.01,r),0,Math.PI*2);}
+function drawPlasmaMembrane(h){
+  var a=Math.sqrt(Math.max(0,R*R-h*h)),al=Math.atan2(h,a);
+  if(h>-R+0.5){
+    ctx.beginPath();ctx.moveTo(CX-a,Y0);ctx.arc(CX,Y0+h,R,Math.PI+al,-al,true);ctx.closePath();
+    ctx.fillStyle=C.out;ctx.fill();
+  }
+  ctx.beginPath();ctx.moveTo(-10,Y0);ctx.lineTo(CX-a,Y0);
+  if(h>-R+0.5)ctx.arc(CX,Y0+h,R,Math.PI+al,-al,true);
+  ctx.lineTo(LW+10,Y0);
+  ctx.lineCap="butt";ctx.lineJoin="round";
+  ctx.lineWidth=16;ctx.strokeStyle=C.head;ctx.stroke();
+  ctx.lineWidth=10;ctx.strokeStyle=C.band;ctx.stroke();
+}
+function drawCompartments(list){
+  list.forEach(function(o){circlePath(o.x,o.y,o.r);ctx.lineWidth=16;ctx.strokeStyle=C.head;ctx.stroke();});
+  list.forEach(function(o){circlePath(o.x,o.y,o.r);ctx.lineWidth=10;ctx.strokeStyle=C.band;ctx.stroke();});
+  list.forEach(function(o){if(o.r>8){circlePath(o.x,o.y,o.r-8);ctx.fillStyle=o.fill;ctx.fill();}});
+}
+function drawRec(m,ap){
+  var tx=m.x-m.nx*11,ty=m.y-m.ny*11,hx=m.x+m.nx*STEM,hy=m.y+m.ny*STEM,a0=Math.atan2(m.ny,m.nx);
+  var col=fh?C.recbad:C.rec;
+  ctx.strokeStyle=col;ctx.lineWidth=3.2;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(hx-m.nx*5,hy-m.ny*5);ctx.stroke();
+  if(fh){circlePath(hx-m.nx*1.5,hy-m.ny*1.5,4.5);ctx.fillStyle=col;ctx.fill();}
+  else{ctx.beginPath();ctx.arc(hx-m.nx*1.5,hy-m.ny*1.5,5.5,a0+0.95,a0+2*Math.PI-0.95,false);ctx.stroke();}
+  if(ap>0){ctx.globalAlpha=ap;circlePath(tx-m.nx*2.5,ty-m.ny*2.5,3.4);ctx.fillStyle=C.ap2;ctx.fill();ctx.globalAlpha=1;}
+}
+function drawLDL(x,y,r,ang,a){
+  if(r<0.4||a<=0)return;
+  ctx.globalAlpha=a;
+  circlePath(x,y,r);ctx.fillStyle=C.shell;ctx.fill();
+  circlePath(x,y,r*0.6);ctx.fillStyle=C.core;ctx.fill();
+  ctx.beginPath();ctx.arc(x,y,Math.max(0.5,r-1.3),ang-0.9,ang+0.9);ctx.lineWidth=2.6*(r/LR);ctx.strokeStyle=C.apob;ctx.lineCap="round";ctx.stroke();
+  ctx.globalAlpha=1;
+}
+function drawTris(x,y,rot,a){
+  ctx.globalAlpha=a;ctx.strokeStyle=C.clath;ctx.lineWidth=2.2;ctx.lineCap="round";ctx.beginPath();
+  for(var k=0;k<3;k++){var an=rot+k*2.0944,mx=x+Math.cos(an)*4.5,my=y+Math.sin(an)*4.5;
+    ctx.moveTo(x,y);ctx.lineTo(mx,my);ctx.lineTo(mx+Math.cos(an+0.7)*3.5,my+Math.sin(an+0.7)*3.5);}
+  ctx.stroke();ctx.globalAlpha=1;
+}
+function drawChol(x,y,rot,a){
+  ctx.save();ctx.globalAlpha=a;ctx.translate(x,y);ctx.rotate(rot);
+  ctx.strokeStyle=C.chol;ctx.lineWidth=3.6;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(-4.5,0);ctx.lineTo(4.5,0);ctx.stroke();ctx.restore();
+}
+function label(txt,x,y,align,col,weight){
+  ctx.font=(weight||700)+" "+fs+"px "+F;ctx.textAlign=align||"left";ctx.textBaseline="middle";
+  ctx.fillStyle=col||C.muted;ctx.fillText(txt,x,y);
+}
+function badge(txt,y,a,arrow){
+  if(a<=0)return;
+  ctx.font="700 "+fs+"px "+F;
+  var w=ctx.measureText(txt).width+18,hg=fs+12,x=Math.min(470,LW-8-w);
+  ctx.globalAlpha=a;
+  if(arrow){
+    var ax=402,ay=422,bx=x-5,by=y+hg/2,an=Math.atan2(by-ay,bx-ax);
+    ctx.strokeStyle=C.ink;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx-8*Math.cos(an-0.45),by-8*Math.sin(an-0.45));ctx.lineTo(bx-8*Math.cos(an+0.45),by-8*Math.sin(an+0.45));ctx.closePath();ctx.fillStyle=C.ink;ctx.fill();
+  }
+  var r=7;ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+hg-r);ctx.arcTo(x+w,y+hg,x+w-r,y+hg,r);ctx.lineTo(x+r,y+hg);ctx.arcTo(x,y+hg,x,y+hg-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+  ctx.fillStyle=C.panel;ctx.fill();ctx.strokeStyle=fh?C.recbad:C.accent;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=C.ink;ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(txt,x+9,y+hg/2+0.5);
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  var sc=scene(),i;
+  ctx.clearRect(0,0,LW,LH);
+  ctx.fillStyle=C.out;ctx.fillRect(0,0,LW,Y0);
+  ctx.fillStyle=C.in;ctx.fillRect(0,Y0,LW,LH-Y0);
+
+  drawPlasmaMembrane(sc.h);
+  var comps=[{x:EX,y:EY,r:RE,fill:sc.endoCol}];
+  if(sc.ves)comps.push({x:sc.ves.x,y:sc.ves.y,r:sc.ves.r,fill:sc.ves.merge>0?mixColor(C.out,sc.endoCol,sc.ves.merge):C.out});
+  if(sc.rv)comps.push({x:sc.rv.x,y:sc.rv.y,r:sc.rv.r,fill:sc.endoCol});
+  drawCompartments(comps);
+
+  /* bombas de protones y H+ */
+  PUMPS.forEach(function(an,k){
+    var px=EX+RE*Math.cos(an),py=EY+RE*Math.sin(an);
+    ctx.save();ctx.translate(px,py);ctx.rotate(an);ctx.fillStyle=C.pump;ctx.fillRect(-11,-5.5,22,11);ctx.restore();
+    if(T>=START[7]){
+      for(var q=0;q<3;q++){
+        var u=(T*0.6+q/3+k*0.17)%1,rr=lerp(RE+30,RE-26,u);
+        ctx.globalAlpha=Math.sin(Math.PI*u);
+        circlePath(EX+rr*Math.cos(an),EY+rr*Math.sin(an),3.6);ctx.fillStyle=C.hplus;ctx.fill();
+        ctx.globalAlpha=1;
+      }
+    }
+  });
+
+  sc.cla.forEach(function(c){drawTris(c.x,c.y,c.rot,c.a);});
+  sc.rec.forEach(function(m){drawRec(m,sc.coat);});
+  sc.ldl.forEach(function(L){drawLDL(L.x,L.y,L.r,L.ang,L.a);});
+  sc.extra.forEach(function(L){drawLDL(L.x,L.y,LR,Math.PI/2,L.a);});
+  sc.aa.forEach(function(d){ctx.globalAlpha=d.a;circlePath(d.x,d.y,2.6);ctx.fillStyle=C.aa;ctx.fill();ctx.globalAlpha=1;});
+  sc.chol.forEach(function(c){drawChol(c.x,c.y,c.rot,c.a);});
+
+  /* dinamina */
+  if(sc.p4>0.25&&sc.p4<0.95){
+    var q4=ease((sc.p4-0.25)/0.55),da=sc.p4<0.8?1:1-(sc.p4-0.8)/0.15;
+    ctx.globalAlpha=da;ctx.strokeStyle=C.dyn;ctx.lineWidth=3;
+    for(i=0;i<3;i++){ctx.beginPath();ctx.ellipse(CX,Y0+3+i*5,lerp(15,6,q4),2.6,0,0,Math.PI*2);ctx.stroke();}
+    ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(CX+10,Y0-6);ctx.lineTo(CX+24,Y0-22);ctx.stroke();
+    label("dinamina · GTP",CX+28,Y0-26,"left",C.dyn);
+    ctx.globalAlpha=1;
+  }
+
+  /* rótulos */
+  label("LÍQUIDO EXTRACELULAR (PLASMA)",10,10+fs/2,"left");
+  label("CITOSOL",LW-10,LH-10-fs/2,"right");
+  label(sc.p9>0.5?"lisosoma":"endosoma",EX,EY-RE-16,"center",C.ink);
+  label("pH "+sc.ph.toFixed(1).replace(".",","),EX,EY+RE+22,"center",C.ink);
+  if(fh&&sc.extra.length)label("LDL acumulada en sangre",LW-10,10+fs/2,"right",C.apob);
+
+  /* regulación */
+  if(sc.p10>0){
+    var txt=fh?["HMG-CoA reductasa ↑","Receptores de LDL ↑","LDL en sangre ↑"]:["HMG-CoA reductasa ↓","Receptores de LDL ↓","Ésteres de colesterol (ACAT) ↑"];
+    var step=fs+24;
+    for(i=0;i<3;i++)badge(txt[i],350+i*step,clamp((sc.p10-i*0.2)/0.2,0,1),!fh);
+  }
+}
+
+/* ---------- interfaz ---------- */
+var chips=document.getElementById("chips"),btnPlay=document.getElementById("btn-play");
+var elTitle=document.getElementById("st-title"),elText=document.getElementById("st-text"),elInfo=document.getElementById("info");
+ST.forEach(function(s,i){
+  var b=document.createElement("button");b.type="button";b.textContent=String(i+1);b.id="chip-"+(i+1);
+  b.setAttribute("aria-label","Etapa "+(i+1)+": "+s.t);b.title=s.t;
+  b.addEventListener("click",function(){T=START[i];setRunning(true);});
+  chips.appendChild(b);
+});
+var lastIdx=-1,lastFh=null;
+function updateInfo(){
+  var k=stageIdx();
+  if(k===lastIdx&&fh===lastFh)return;
+  lastIdx=k;lastFh=fh;
+  elTitle.textContent=(k+1)+". "+ST[k].t;
+  elText.textContent=fh?ST[k].f:ST[k].x;
+  elInfo.className="card"+(fh?" fh":"");
+  Array.prototype.forEach.call(chips.children,function(b,i){
+    if(i===k)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current");
+    b.className=i<k?"done":"";
+  });
+}
+function setRunning(v){running=v;btnPlay.textContent=v?"Pausar":(T>=TOTAL?"Repetir":"Reanudar");}
+btnPlay.addEventListener("click",function(){if(!running&&T>=TOTAL)T=0;setRunning(!running);});
+document.getElementById("btn-reset").addEventListener("click",function(){T=0;setRunning(true);});
+document.getElementById("btn-next").addEventListener("click",function(){var k=stageIdx();T=k<ST.length-1?START[k+1]:TOTAL;if(T>=TOTAL)setRunning(false);});
+document.getElementById("btn-prev").addEventListener("click",function(){var k=stageIdx();T=(T-START[k]>0.6||k===0)?START[k]:START[k-1];if(!running)setRunning(false);});
+document.getElementById("fh").addEventListener("change",function(e){fh=e.target.checked;T=0;setRunning(true);});
+
+/* leyenda con miniaturas dibujadas con el mismo código */
+function buildLegend(){
+  var items=[
+    ["LDL (núcleo de ésteres de colesterol, apoB-100 en rojo)",function(){drawLDL(13,13,9,Math.PI/2,1);}],
+    ["Receptor de LDL",function(){var f0=fh;fh=false;drawRec({x:13,y:19,nx:0,ny:-1},0);fh=f0;}],
+    ["Receptor que no une LDL",function(){var f0=fh;fh=true;drawRec({x:13,y:19,nx:0,ny:-1},0);fh=f0;}],
+    ["Adaptador AP2",function(){circlePath(13,13,4.5);ctx.fillStyle=C.ap2;ctx.fill();}],
+    ["Clatrina (trisquelión)",function(){drawTris(13,13,0.3,1);}],
+    ["Dinamina",function(){ctx.strokeStyle=C.dyn;ctx.lineWidth=2.5;for(var i=0;i<3;i++){ctx.beginPath();ctx.ellipse(13,8+i*5,9,2.4,0,0,Math.PI*2);ctx.stroke();}}],
+    ["Bomba de protones e H⁺",function(){ctx.fillStyle=C.pump;ctx.fillRect(3,9,12,9);circlePath(20,9,3.6);ctx.fillStyle=C.hplus;ctx.fill();}],
+    ["Colesterol libre",function(){drawChol(13,13,-0.5,1);}],
+    ["Aminoácidos",function(){[[8,10],[16,9],[12,17]].forEach(function(p){circlePath(p[0],p[1],2.6);ctx.fillStyle=C.aa;ctx.fill();});}]
+  ];
+  var ul=document.getElementById("legend");ul.innerHTML="";
+  var mainCtx=ctx;
+  items.forEach(function(it){
+    var li=document.createElement("li"),c=document.createElement("canvas"),d=window.devicePixelRatio||1;
+    c.width=26*d;c.height=26*d;c.setAttribute("aria-hidden","true");
+    ctx=c.getContext("2d");ctx.setTransform(d,0,0,d,0,0);it[1]();ctx=mainCtx;
+    var sp=document.createElement("span");sp.textContent=it[0];
+    li.appendChild(c);li.appendChild(sp);ul.appendChild(li);
+  });
+}
+
+function resize(){
+  var w=cv.parentElement.clientWidth;
+  scale=w/LW;dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(LH*scale*dpr);cv.style.height=Math.round(LH*scale)+"px";
+  ctx.setTransform(dpr*scale,0,0,dpr*scale,0,0);
+  fs=Math.max(13,12/scale);
+}
+var last=0;
+function frame(ts){
+  var dt=Math.min(0.05,(ts-last)/1000||0);last=ts;
+  if(running){T+=dt;if(T>=TOTAL){T=TOTAL;setRunning(false);}}
+  draw();updateInfo();
+  requestAnimationFrame(frame);
+}
+function retheme(){readColors();buildLegend();}
+window.addEventListener("resize",function(){resize();});
+try{
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",retheme);
+  new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+}catch(e){}
+readColors();resize();buildLegend();
+if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)setRunning(false);
+updateInfo();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
