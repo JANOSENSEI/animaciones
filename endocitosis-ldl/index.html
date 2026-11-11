@@ -15,7 +15,7 @@
   --rec:#2f66c9; --recbad:#8f8f8f; --clath:#6d5aa8; --ap2:#d9542b; --dyn:#c2185b;
   --shell:#f2c94c; --core:#e08a1e; --apob:#b23a48;
   --endo:#d9ece6; --acid:#f6d8c6; --lyso:#efc2d3; --pump:#8a6d3b; --hplus:#d9542b;
-  --chol:#e8b100; --aa:#3c8c3f;
+  --chol:#e8b100; --aa:#3c8c3f; --hyd:#00897b; --golgi:#bba6dc;
   --font-display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
   --font-body:"Atkinson Hyperlegible",Verdana,sans-serif;
 }
@@ -28,7 +28,7 @@
     --rec:#7fa8ff; --recbad:#7a7a7a; --clath:#a996e6; --ap2:#ff8a61; --dyn:#f06292;
     --shell:#e9c25a; --core:#d9862a; --apob:#ff6b7d;
     --endo:#1e3b36; --acid:#4a3326; --lyso:#4a2838; --pump:#c9a46a; --hplus:#ff8a61;
-    --chol:#f0c24a; --aa:#7cc97f;
+    --chol:#f0c24a; --aa:#7cc97f; --hyd:#4db6ac; --golgi:#6a5690;
   }
 }
 :root[data-theme="dark"]{
@@ -39,7 +39,7 @@
   --rec:#7fa8ff; --recbad:#7a7a7a; --clath:#a996e6; --ap2:#ff8a61; --dyn:#f06292;
   --shell:#e9c25a; --core:#d9862a; --apob:#ff6b7d;
   --endo:#1e3b36; --acid:#4a3326; --lyso:#4a2838; --pump:#c9a46a; --hplus:#ff8a61;
-  --chol:#f0c24a; --aa:#7cc97f;
+  --chol:#f0c24a; --aa:#7cc97f; --hyd:#4db6ac; --golgi:#6a5690;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-siz
 main{max-width:760px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:14px}
 h1{font-family:var(--font-display);font-weight:700;font-size:1.7rem;line-height:1.1;margin:0;text-wrap:balance}
 .lede{margin:0;color:var(--muted);max-width:62ch}
-.chips{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:5px}
+.chips{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px}
 .chips button{font:inherit;font-weight:700;font-size:.9rem;padding:7px 0;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
 .chips button.done{border-color:var(--accent);color:var(--accent)}
 .chips button[aria-current="step"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -73,7 +73,7 @@ canvas{display:block;width:100%}
 <body>
 <main>
   <h1>Endocitosis de LDL mediada por receptor</h1>
-  <p class="lede">Once etapas, desde que la LDL se une a su receptor hasta que el colesterol regula la célula. Puedes saltar a cualquier etapa con los números.</p>
+  <p class="lede">Doce etapas, desde que la LDL se une a su receptor hasta que el colesterol regula la célula. Puedes saltar a cualquier etapa con los números.</p>
 
   <nav class="chips" id="chips" aria-label="Etapas"></nav>
 
@@ -105,6 +105,7 @@ canvas{display:block;width:100%}
     <ul class="keys">
       <li>Solo entra lo que el receptor reconoce. Así la célula capta un ligando escaso en la sangre sin tragar un gran volumen de plasma.</li>
       <li>El pH ácido del endosoma separa los destinos: el receptor vuelve a la membrana y la LDL acaba degradada en el lisosoma.</li>
+      <li>Las hidrolasas lisosómicas trabajan a pH ácido. Si alguna se escapa al citosol (pH ≈ 7,2) apenas actúa, y eso protege a la célula.</li>
       <li>La luz de la vesícula y del endosoma es topológicamente equivalente al exterior de la célula.</li>
       <li>Las estatinas inhiben la HMG-CoA reductasa. Con menos colesterol dentro, la célula fabrica más receptores de LDL y baja la LDL de la sangre.</li>
       <li>Brown y Goldstein descubrieron esta vía estudiando la hipercolesterolemia familiar y recibieron el Nobel de Medicina en 1985.</li>
@@ -153,8 +154,11 @@ var ST=[
  {d:4.5,t:"Reciclaje del receptor",
   x:"Los receptores libres se concentran en una región tubular del endosoma, que se desprende como vesícula de reciclaje y vuelve a la membrana plasmática. Cada receptor hace un viaje de ida y vuelta cada 10 minutos aproximadamente, y cientos a lo largo de su vida (unas 20 horas).",
   f:"Los receptores vuelven a la membrana plasmática en una vesícula de reciclaje, listos para otro intento que tampoco funcionará."},
+ {d:5,t:"Llegada de las hidrolasas ácidas",
+  x:"Desde la red trans del Golgi llegan vesículas cargadas de hidrolasas ácidas: proteasas, lipasas, nucleasas y otras. Se fabricaron en el retículo rugoso y en el Golgi recibieron la marca de manosa-6-fosfato, que reconoce su receptor. Al fusionarse la vesícula con el endosoma tardío, el medio ácido suelta las enzimas y el receptor de manosa-6-fosfato vuelve al Golgi.",
+  f:"Las hidrolasas ácidas llegan igual desde el Golgi, marcadas con manosa-6-fosfato, aunque en este endosoma no hay LDL que digerir."},
  {d:5,t:"Degradación en el lisosoma",
-  x:"El endosoma madura hasta lisosoma (pH ≈ 5). La lipasa ácida lisosómica hidroliza los ésteres de colesterol y libera colesterol libre, que sale al citosol con ayuda de NPC2 y NPC1. Las proteasas degradan la apoB-100 hasta aminoácidos.",
+  x:"Con las hidrolasas dentro y el pH ≈ 5, el endosoma tardío se ha convertido en lisosoma. La lipasa ácida lisosómica hidroliza los ésteres de colesterol y libera colesterol libre, que sale al citosol con ayuda de NPC2 y NPC1. Las proteasas degradan la apoB-100 hasta aminoácidos.",
   f:"El lisosoma no recibe LDL, así que por esta vía no entra colesterol en la célula."},
  {d:6,t:"Regulación por el colesterol",
   x:"El colesterol libre regula la célula: inhibe la HMG-CoA reductasa (menos síntesis propia), frena la vía SREBP (se fabrican menos receptores de LDL) y activa la ACAT, que lo reesterifica para almacenarlo en gotas lipídicas.",
@@ -172,7 +176,7 @@ function P(i){return clamp((T-START[i])/ST[i].d,0,1);}
 function stageIdx(){for(var i=ST.length-1;i>0;i--)if(T>=START[i]-1e-6)return i;return 0;}
 
 /* ---------- colores ---------- */
-var TOK=["bg","panel","ink","muted","line","accent","out","in","head","band","rec","recbad","clath","ap2","dyn","shell","core","apob","endo","acid","lyso","pump","hplus","chol","aa"];
+var TOK=["hyd","golgi","bg","panel","ink","muted","line","accent","out","in","head","band","rec","recbad","clath","ap2","dyn","shell","core","apob","endo","acid","lyso","pump","hplus","chol","aa"];
 function readColors(){
   var cs=getComputedStyle(document.documentElement);
   TOK.forEach(function(k){C[k]=cs.getPropertyValue("--"+k).trim();});
@@ -199,8 +203,8 @@ function mixPt(a,b,t){
 
 /* ---------- estado de la escena en el instante T ---------- */
 function scene(){
-  var p1=P(1),p2=P(2),p3=P(3),p4=P(4),p5=P(5),p6=P(6),p7=P(7),p8=P(8),p9=P(9),p10=P(10);
-  var sc={p4:p4,p5:p5,p6:p6,p7:p7,p8:p8,p9:p9,p10:p10};
+  var p1=P(1),p2=P(2),p3=P(3),p4=P(4),p5=P(5),p6=P(6),p7=P(7),p8=P(8),phy=P(9),p9=P(10),p10=P(11);
+  var sc={phy:phy,p4:p4,p5:p5,p6:p6,p7:p7,p8:p8,p9:p9,p10:p10};
   var cut=p4>=0.8,h=-R;
   if(!cut){if(p4>0)h=lerp(0.5*R,R,ease(p4/0.8));else if(p3>0)h=lerp(-R,0.5*R,ease(p3));}
   sc.h=h;sc.cut=cut;
@@ -310,8 +314,37 @@ function scene(){
     for(i=0;i<4;i++)for(n=0;n<3;n++)sc.aa.push({x:EX+CL[i][0]+AAO[n][0]*spr,y:EY+CL[i][1]+AAO[n][1]*spr,a:clamp((p9-0.25)*6,0,1)});
   }
 
-  sc.endoCol=mixColorHex(mixColorHex(C.endo,C.acid,ease(p7)),C.lyso,ease(p9));
-  sc.ph=p9>0?lerp(6.0,5.0,ease(p9)):lerp(7.4,6.0,ease(p7));
+  /* vesícula del Golgi con hidrolasas ácidas */
+  var HGX=400,HGY=462,HVR=26,hdx=HGX-EX,hdy=HGY-EY,hdl=Math.sqrt(hdx*hdx+hdy*hdy);hdx/=hdl;hdy/=hdl;
+  var hv=null,hvM=0;
+  if(phy>0&&phy<0.85){
+    var hx,hy,hr=HVR,h1x=EX+hdx*(RE+HVR*0.95),h1y=EY+hdy*(RE+HVR*0.95);
+    if(phy<0.15){var qg=ease(phy/0.15);hx=HGX;hy=HGY+10-10*qg;hr=lerp(4,HVR,qg);}
+    else if(phy<0.6){var qm=ease((phy-0.15)/0.45);hx=lerp(HGX,h1x,qm);hy=lerp(HGY,h1y,qm);}
+    else{hvM=ease((phy-0.6)/0.25);hx=lerp(h1x,EX+hdx*(RE-HVR*0.3),hvM);hy=lerp(h1y,EY+hdy*(RE-HVR*0.3),hvM);hr=lerp(HVR,0.01,hvM);}
+    hv={x:hx,y:hy,r:hr,merge:hvM};
+  }
+  sc.hv=hv;
+  sc.hyd=[];
+  if(phy>0.12){
+    var HYP=[[-42,26],[30,-44],[40,32],[-40,-30]],HA=[0.6,2.2,3.8,5.4];
+    for(i=0;i<4;i++){
+      var hpx=EX+HYP[i][0],hpy=EY+HYP[i][1],o={x:hpx,y:hpy,ang:T*0.8+i*1.6,mouth:0.3+0.35*Math.abs(Math.sin(T*6+i)),a:clamp((phy-0.12)*10,0,1)};
+      if(hv){
+        var c2=Math.cos(HA[i]),s2=Math.sin(HA[i]),vx2=hv.x+(HVR-9)*c2,vy2=hv.y+(HVR-9)*s2;
+        o.x=lerp(vx2,hpx,hvM);o.y=lerp(vy2,hpy,hvM);o.ang=HA[i]+Math.PI;o.mouth=0.5;
+        if(hvM<0.5){o.sx=hv.x+hv.r*c2;o.sy=hv.y+hv.r*s2;}
+      }
+      if(!fh&&p9>0){
+        var Lx=EX+CL[i][0],Ly=EY+CL[i][1],ddx=hpx-Lx,ddy=hpy-Ly,dd=Math.sqrt(ddx*ddx+ddy*ddy)||1,q9=ease(Math.min(1,p9/0.3));
+        o.x=lerp(hpx,Lx+ddx/dd*15,q9);o.y=lerp(hpy,Ly+ddy/dd*15,q9);o.ang=Math.atan2(-ddy,-ddx);
+      }
+      sc.hyd.push(o);
+    }
+  }
+
+  sc.endoCol=mixColorHex(mixColorHex(C.endo,C.acid,ease(p7)),C.lyso,0.35*ease(phy)+0.65*ease(p9));
+  sc.ph=p9>0?lerp(5.5,5.0,ease(p9)):phy>0?lerp(6.0,5.5,ease(phy)):lerp(7.4,6.0,ease(p7));
   return sc;
 }
 
@@ -363,6 +396,15 @@ function drawChol(x,y,rot,a){
   ctx.strokeStyle=C.chol;ctx.lineWidth=3.6;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(-4.5,0);ctx.lineTo(4.5,0);ctx.stroke();ctx.restore();
 }
+function drawHyd(x,y,ang,a,mouth){
+  ctx.globalAlpha=a;ctx.fillStyle=C.hyd;ctx.beginPath();ctx.moveTo(x,y);
+  ctx.arc(x,y,5.5,ang+mouth,ang+2*Math.PI-mouth);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+}
+function drawGolgi(){
+  ctx.strokeStyle=C.golgi;ctx.lineCap="round";ctx.lineWidth=7;
+  for(var k=0;k<3;k++){ctx.beginPath();ctx.ellipse(400,526-k*11,58-k*8,15,0,Math.PI+0.25,2*Math.PI-0.25);ctx.stroke();}
+  label("aparato de Golgi",466,512,"left");
+}
 function label(txt,x,y,align,col,weight){
   ctx.font=(weight||700)+" "+fs+"px "+F;ctx.textAlign=align||"left";ctx.textBaseline="middle";
   ctx.fillStyle=col||C.muted;ctx.fillText(txt,x,y);
@@ -390,9 +432,11 @@ function draw(){
   ctx.fillStyle=C.in;ctx.fillRect(0,Y0,LW,LH-Y0);
 
   drawPlasmaMembrane(sc.h);
+  drawGolgi();
   var comps=[{x:EX,y:EY,r:RE,fill:sc.endoCol}];
   if(sc.ves)comps.push({x:sc.ves.x,y:sc.ves.y,r:sc.ves.r,fill:sc.ves.merge>0?mixColor(C.out,sc.endoCol,sc.ves.merge):C.out});
   if(sc.rv)comps.push({x:sc.rv.x,y:sc.rv.y,r:sc.rv.r,fill:sc.endoCol});
+  if(sc.hv)comps.push({x:sc.hv.x,y:sc.hv.y,r:sc.hv.r,fill:mixColor(C.lyso,sc.endoCol,sc.hv.merge)});
   drawCompartments(comps);
 
   /* bombas de protones y H+ */
@@ -413,6 +457,10 @@ function draw(){
   sc.rec.forEach(function(m){drawRec(m,sc.coat);});
   sc.ldl.forEach(function(L){drawLDL(L.x,L.y,L.r,L.ang,L.a);});
   sc.extra.forEach(function(L){drawLDL(L.x,L.y,LR,Math.PI/2,L.a);});
+  sc.hyd.forEach(function(d){
+    if(d.sx!==undefined){ctx.globalAlpha=d.a;ctx.strokeStyle=C.muted;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.sx,d.sy);ctx.stroke();ctx.globalAlpha=1;}
+    drawHyd(d.x,d.y,d.ang,d.a,d.mouth);
+  });
   sc.aa.forEach(function(d){ctx.globalAlpha=d.a;circlePath(d.x,d.y,2.6);ctx.fillStyle=C.aa;ctx.fill();ctx.globalAlpha=1;});
   sc.chol.forEach(function(c){drawChol(c.x,c.y,c.rot,c.a);});
 
@@ -435,8 +483,8 @@ function draw(){
     ctx.fill();ctx.stroke();
     ctx.drawImage(LOGO,lx+pd,ly+pd,lw,lh);
   }
-  label("CITOSOL",LW-10,LH-10-fs/2,"right");
-  label(sc.p9>0.5?"lisosoma":"endosoma",EX,EY-RE-16,"center",C.ink);
+  label("CITOSOL",LW-10,Y0+14+fs/2,"right");
+  label(sc.p9>0.5?"lisosoma":(sc.phy>0?"endosoma tardío":"endosoma"),EX,EY-RE-16,"center",C.ink);
   label("pH "+sc.ph.toFixed(1).replace(".",","),EX,EY+RE+22,"center",C.ink);
   if(fh&&sc.extra.length)label("LDL acumulada en sangre",LW-10,10+fs/2,"right",C.apob);
 
@@ -487,6 +535,8 @@ function buildLegend(){
     ["Clatrina (trisquelión)",function(){drawTris(13,13,0.3,1);}],
     ["Dinamina",function(){ctx.strokeStyle=C.dyn;ctx.lineWidth=2.5;for(var i=0;i<3;i++){ctx.beginPath();ctx.ellipse(13,8+i*5,9,2.4,0,0,Math.PI*2);ctx.stroke();}}],
     ["Bomba de protones e H⁺",function(){ctx.fillStyle=C.pump;ctx.fillRect(3,9,12,9);circlePath(20,9,3.6);ctx.fillStyle=C.hplus;ctx.fill();}],
+    ["Hidrolasa ácida (llega desde el Golgi)",function(){drawHyd(13,13,0,1,0.5);}],
+    ["Aparato de Golgi",function(){ctx.strokeStyle=C.golgi;ctx.lineWidth=3.5;ctx.lineCap="round";for(var k=0;k<3;k++){ctx.beginPath();ctx.ellipse(13,22-k*6,10-k*2,5,0,Math.PI+0.3,2*Math.PI-0.3);ctx.stroke();}}],
     ["Colesterol libre",function(){drawChol(13,13,-0.5,1);}],
     ["Aminoácidos",function(){[[8,10],[16,9],[12,17]].forEach(function(p){circlePath(p[0],p[1],2.6);ctx.fillStyle=C.aa;ctx.fill();});}]
   ];
