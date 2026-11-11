@@ -125,7 +125,7 @@ th{color:var(--muted);font-weight:700}
 "use strict";
 var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 var W=340,H=400,dpr=1,L=46,R=330,mTop=166,mBot=234,cx=188;
-var mode="simple",running=true,P=[],T=null,Pm=null,tick=0;
+var tNow=0,mode="simple",running=true,P=[],T=null,Pm=null,tick=0,flux={inn:0,out:0},KB=0.03;
 var SPEED=70;
 
 var KIND={
@@ -150,7 +150,7 @@ var INFO={
   carrier:{title:"Difusión facilitada por carrier (permeasa)",kinds:["Glu"],chip:"A favor de gradiente · cambio conformacional · sin ATP",rows:[
     ["Qué ocurre","La proteína une el soluto, cambia de conformación y lo libera al otro lado."],
     ["Ejemplos","GLUT1 para la glucosa; transportadores de aminoácidos."],
-    ["Gradiente","A favor: el carrier funciona en los dos sentidos, pero gana el lado más concentrado."],
+    ["Gradiente","A favor en conjunto. Cada carrier funciona en los dos sentidos, así que de vez en cuando sale alguna molécula; pero entran muchas más, porque fuera hay más glucosa que pueda unirse. Fíjate en el contador de entradas y salidas."],
     ["Energía","Ninguna."],
     ["Cinética","Saturable, tipo Michaelis-Menten: con todos los carriers ocupados se alcanza Vmáx."]]},
   activo:{title:"Transporte activo primario: bomba Na⁺/K⁺",kinds:["Na","K"],chip:"",rows:[
@@ -202,16 +202,18 @@ function add(kind,side,n){
   }
 }
 function reset(){
-  layout(); P=[]; T=null; Pm=null;
+  layout(); P=[]; T=null; Pm=null; flux={inn:0,out:0};
   if(mode==="simple"){add("O2",-1,36);add("O2",1,5);}
   if(mode==="canal"){add("Na",-1,36);add("Na",1,5);}
-  if(mode==="carrier"){add("Glu",-1,34);add("Glu",1,5);T={c:0,state:"open",side:-1,cargo:null,idle:0,t:0};}
+  if(mode==="carrier"){add("Glu",-1,34);add("Glu",1,5);var off=W<480?85:130;T=[makeCarrier(cx-off,-1),makeCarrier(cx,1),makeCarrier(cx+off,-1)];}
   if(mode==="activo"){add("Na",-1,18);add("Na",1,15);add("K",-1,10);add("K",1,18);
     Pm={c:1,phase:"bindNa",t:0,ions:[],hasP:false,stalled:false,fx:[],cycles:0,need:3};}
   if(mode==="cotrans"){add("Na",-1,28);add("Na",1,4);add("Glu",-1,8);add("Glu",1,16);
     Pm={c:0,phase:"bindCo",t:0,ions:[],hasP:false,stalled:false,why:"",fx:[],cycles:0,need:3};}
   renderInfo(); updateReadout(); draw();
 }
+function makeCarrier(x,side){return {x:x,c:side<0?0:1,state:"open",side:side,cargo:null,pending:null,idle:0,t:0};}
+function countFlux(p){if(p.side>0)flux.inn++;else flux.out++;}
 function launch(p){
   var a=rand(-1,1);
   p.vx=Math.sin(a)*SPEED; p.vy=Math.cos(a)*SPEED*(p.side<0?-1:1); p.st="free";
@@ -225,12 +227,6 @@ function tryCross(p){
   }
   if(mode==="canal"){
     if(Math.abs(p.x-cx)<24){p.st="cross";p.from=p.side;p.t=0;p.D=0.32;p.tx=cx;return true;}
-    return false;
-  }
-  if(mode==="carrier"){
-    if(T.state==="open"&&T.side===p.side&&!T.cargo&&Math.abs(p.x-cx)<24){
-      p.st="bound";T.cargo=p;T.state="switch";T.t=0;return true;
-    }
     return false;
   }
   return false;
@@ -264,7 +260,12 @@ function stepP(p,dt){
     var y0=p.from<0?mTop-r:mBot+r,y1=p.from<0?mBot+r:mTop-r;
     p.y=lerp(y0,y1,Math.min(1,p.t));
     if(p.tx!==null)p.x+=(p.tx-p.x)*Math.min(1,dt*14);
-    if(p.t>=1){p.side=-p.from;launch(p);}
+    if(p.t>=1){p.side=-p.from;countFlux(p);launch(p);}
+  }else if(p.st==="cseek"){
+    var k2=p.car,mx=k2.x,my=p.side<0?mTop-r-1:mBot+r+1;
+    var ex=mx-p.x,ey=my-p.y,ed=Math.sqrt(ex*ex+ey*ey),es=220*dt;
+    if(ed<=es+0.5){p.x=mx;p.y=my;p.st="bound";k2.cargo=p;k2.pending=null;k2.state="switch";k2.t=0;}
+    else{p.x+=ex/ed*es;p.y+=ey/ed*es;}
   }else if(p.st==="seek"){
     var n=Pm.need,tg;
     if(p.stage===0)tg=[slotPos(p.slot,n,Pm.c)[0],p.side>0?mBot+22:mTop-22];
@@ -274,18 +275,31 @@ function stepP(p,dt){
     else{p.x+=dx/d*sp;p.y+=dy/d*sp;}
   }
 }
+function freeGlu(side,x){
+  var n=0,best=null,bd=1e9;
+  for(var i=0;i<P.length;i++){var p=P[i];if(p.kind!=="Glu"||p.side!==side||p.st!=="free")continue;
+    n++;if(p.cool&&p.cool>tNow)continue;var d=Math.abs(p.x-x)+Math.abs(p.y-(side<0?mTop:mBot));if(d<bd){bd=d;best=p;}}
+  return {n:n,best:best};
+}
 function stepCarrier(dt){
-  if(T.state==="open"){T.idle+=dt;if(T.idle>1.8){T.state="switch";T.t=0;}}
-  if(T.state==="switch"){
-    T.t+=dt/0.9;
-    var e=ease(T.t);T.c=T.side<0?e:1-e;
-    if(T.cargo){var q=T.cargo,ty=lerp(mTop+18,mBot-18,T.c);q.x+=(cx-q.x)*Math.min(1,dt*14);q.y+=(ty-q.y)*Math.min(1,dt*14);}
-    if(T.t>=1){
-      T.side=-T.side;T.c=T.side<0?0:1;
-      if(T.cargo){var p=T.cargo,r=KIND[p.kind].r;p.side=T.side;p.x=cx;p.y=T.side<0?mTop-r-1:mBot+r+1;launch(p);T.cargo=null;}
-      T.state="open";T.idle=0;
+  tNow+=dt;
+  T.forEach(function(k){
+    if(k.state==="open"&&!k.pending){
+      var f=freeGlu(k.side,k.x);
+      if(f.best&&Math.random()<KB*f.n*dt){f.best.st="cseek";f.best.car=k;k.pending=f.best;}
+      else{k.idle+=dt;if(k.idle>0.6){k.state="switch";k.t=0;}}
     }
-  }
+    if(k.state==="switch"){
+      k.t+=dt/0.45;
+      var e=ease(k.t);k.c=k.side<0?e:1-e;
+      if(k.cargo){var q=k.cargo,ty=lerp(mTop+18,mBot-18,k.c);q.x+=(k.x-q.x)*Math.min(1,dt*14);q.y+=(ty-q.y)*Math.min(1,dt*14);}
+      if(k.t>=1){
+        k.side=-k.side;k.c=k.side<0?0:1;
+        if(k.cargo){var p=k.cargo,r=KIND[p.kind].r;p.side=k.side;p.x=k.x;p.y=k.side<0?mTop-r-1:mBot+r+1;countFlux(p);launch(p);p.cool=tNow+1.5;k.cargo=null;}
+        k.state="open";k.idle=0;
+      }
+    }
+  });
 }
 function nearestFree(kind,side){
   var best=null,bd=1e9;
@@ -382,7 +396,7 @@ function drawMembrane(){
   var ph=protHalf();
   ctx.lineWidth=1.6;ctx.strokeStyle=C["--tail"];ctx.fillStyle=C["--head"];
   for(var x=7;x<W;x+=13){
-    if(ph&&Math.abs(x-cx)<ph+4)continue;
+    if(ph&&protXs().some(function(px){return Math.abs(x-px)<ph+4;}))continue;
     ctx.beginPath();
     ctx.moveTo(x-2.5,mTop+10);ctx.lineTo(x-2.5,mTop+32);
     ctx.moveTo(x+2.5,mTop+10);ctx.lineTo(x+2.5,mTop+32);
@@ -392,12 +406,14 @@ function drawMembrane(){
     ctx.beginPath();ctx.arc(x,mTop+5.5,5.5,0,6.283);ctx.arc(x,mBot-5.5,5.5,0,6.283);ctx.fill();
   }
 }
-function lobes(half,gTop,gBot){
+function protXs(){return mode==="carrier"&&T?T.map(function(k){return k.x;}):[cx];}
+function lobes(half,gTop,gBot,x0){
+  var X0=x0===undefined?cx:x0;
   ctx.fillStyle=C["--protein"];ctx.strokeStyle=C["--protein-edge"];ctx.lineWidth=2;ctx.lineJoin="round";
   var y0=mTop-7,y1=mBot+7;
   [-1,1].forEach(function(s){
     ctx.beginPath();
-    ctx.moveTo(cx+s*half,y0);ctx.lineTo(cx+s*gTop,y0);ctx.lineTo(cx+s*gBot,y1);ctx.lineTo(cx+s*half,y1);
+    ctx.moveTo(X0+s*half,y0);ctx.lineTo(X0+s*gTop,y0);ctx.lineTo(X0+s*gBot,y1);ctx.lineTo(X0+s*half,y1);
     ctx.closePath();ctx.fill();ctx.stroke();
   });
 }
@@ -406,8 +422,10 @@ function drawProtein(){
     ctx.fillStyle=C["--pore"];ctx.fillRect(cx-10,mTop-7,20,mBot-mTop+14);
     lobes(34,10,10);
   }else if(mode==="carrier"){
-    ctx.fillStyle=C["--pore"];ctx.fillRect(cx-16,mTop-7,32,mBot-mTop+14);
-    lobes(38,lerp(16,2,T.c),lerp(2,16,T.c));
+    T.forEach(function(k){
+      ctx.fillStyle=C["--pore"];ctx.fillRect(k.x-16,mTop-7,32,mBot-mTop+14);
+      lobes(38,lerp(16,2,k.c),lerp(2,16,k.c),k.x);
+    });
   }else if(Pm){
     ctx.fillStyle=C["--pore"];ctx.fillRect(cx-21,mTop-7,42,mBot-mTop+14);
     lobes(46,lerp(21,2,Pm.c),lerp(2,21,Pm.c));
@@ -479,6 +497,7 @@ function updateReadout(){
     var c=counts(k);
     html+='<span><span class="sw'+(KIND[k].sq?" sq":"")+'" style="background:var('+KIND[k].tok+')"></span>'+KIND[k].name+": fuera "+c[0]+" · dentro "+c[1]+"</span>";
   });
+  if(mode==="simple"||mode==="canal"||mode==="carrier")html+="<span>Han entrado "+flux.inn+" · han salido "+flux.out+"</span>";
   if(elCounts.innerHTML!==html)elCounts.innerHTML=html;
   var chip;
   if(mode==="cotrans"){
